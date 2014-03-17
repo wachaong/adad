@@ -6,6 +6,7 @@ import com.sohu.ad.algo.admm.io.AdmmResultWriterBetas;
 import com.sohu.ad.algo.admm.io.AdmmResultWriterIteration;
 import com.sohu.ad.algo.admm.io.HdfsToS3ResultsWriter;
 import com.sohu.ad.algo.admm.io.SignalInputFormat;
+import com.sohu.ad.algo.common.InstanceInputFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -158,13 +159,22 @@ public class AdmmOptimizerDriver extends Configured implements Tool {
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
-        job.setInputFormatClass(SignalInputFormat.class);
+        //job.setInputFormatClass(SignalInputFormat.class);
+        job.setInputFormatClass(InstanceInputFormat.class);
         job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.setInputPaths(job, signalDataInputLocation);
         FileOutputFormat.setOutputPath(job, standardErrorHdfsPath);
 
-        job.waitForCompletion(true);
+        try {
+			job.waitForCompletion(true);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     public long doAdmmIteration(Job job,
@@ -194,7 +204,9 @@ public class AdmmOptimizerDriver extends Configured implements Tool {
         job.setMapOutputValueClass(Text.class);
         job.setOutputKeyClass(IntWritable.class);
         job.setOutputValueClass(Text.class);
-        job.setInputFormatClass(SignalInputFormat.class);
+        //job.setInputFormatClass(SignalInputFormat.class);
+        job.setInputFormatClass(InstanceInputFormat.class);
+        
         job.setOutputFormatClass(TextOutputFormat.class);
 
         FileInputFormat.setInputPaths(job,signalDataInputLocation);
@@ -204,7 +216,15 @@ public class AdmmOptimizerDriver extends Configured implements Tool {
         }
         FileOutputFormat.setOutputPath(job, currentHdfsPath);
 
-        job.waitForCompletion(true);
+        try {
+			job.waitForCompletion(true);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
         return job.getCounters().findCounter(AdmmIterationReducer.IterationCounter.ITERATION).getValue();
     }
