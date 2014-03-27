@@ -1,8 +1,6 @@
 package com.sohu.ad.algo.models;
 
 import com.sohu.ad.algo.math.*;
-
-import java.nio.file.Paths;
 import java.util.*;
 import java.io.*;
 
@@ -53,7 +51,7 @@ public class LR implements Model  {
 	@Override
 	public void loadModel(String path) throws FileNotFoundException, IOException {
 
-			Scanner scanner = new Scanner(Paths.get(path));
+			Scanner scanner = new Scanner(path);
 			w.getData().clear();
 			int key;
 			double value;

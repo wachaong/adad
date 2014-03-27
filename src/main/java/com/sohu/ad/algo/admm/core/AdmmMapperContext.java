@@ -214,6 +214,10 @@ public class AdmmMapperContext implements Writable {
         return b;
     }
     */
+    @JsonProperty("dataset")
+    public Dataset getDataset() {
+        return dataset;
+    }
 
     @JsonProperty("uInitial")
     public SparseVector getUInitial() {

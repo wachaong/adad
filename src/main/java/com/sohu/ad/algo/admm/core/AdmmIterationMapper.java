@@ -12,6 +12,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import com.sohu.ad.algo.input.InstancesWritable;
 import com.sohu.ad.algo.input.SingleInstanceWritable;
 import com.sohu.ad.algo.math.LBFGS;
+import com.sohu.ad.algo.models.LR;
 
 
 import java.io.IOException;
@@ -88,14 +89,10 @@ public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable,
     }
 
     private AdmmReducerContext localMapperOptimization(AdmmMapperContext context) {
-        LogisticL2DifferentiableFunction myFunction =
-                new LogisticL2DifferentiableFunction(context.getA(),
-                        context.getB(),
-                        context.getRho(),
-                        context.getUInitial(),
-                        context.getZInitial());
-        IOptimizer.Ctx optimizationContext = new IOptimizer.Ctx(context.getXInitial());
-        bfgs.minimize(myFunction, optimizationContext);
+    	
+    	LR lr_map = new LR(context.getXInitial(), 1.0);
+    	lr_map.train(context.getDataset());
+        
         double primalObjectiveValue = myFunction.evaluatePrimalObjective(optimizationContext.m_optimumX);
         return new AdmmReducerContext(context.getUInitial(),
                 context.getXInitial(),
