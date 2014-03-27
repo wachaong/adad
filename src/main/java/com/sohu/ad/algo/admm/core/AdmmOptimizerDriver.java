@@ -6,7 +6,7 @@ import com.sohu.ad.algo.admm.io.AdmmResultWriterBetas;
 import com.sohu.ad.algo.admm.io.AdmmResultWriterIteration;
 import com.sohu.ad.algo.admm.io.HdfsToS3ResultsWriter;
 import com.sohu.ad.algo.admm.io.SignalInputFormat;
-import com.sohu.ad.algo.common.InstanceInputFormat;
+import com.sohu.ad.algo.input.InstanceInputFormat;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;

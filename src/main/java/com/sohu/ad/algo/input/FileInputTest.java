@@ -1,5 +1,5 @@
 
-package com.sohu.ad.algo.common;
+package com.sohu.ad.algo.input;
 import java.io.IOException;
 import java.util.List;
 import org.apache.hadoop.io.LongWritable;

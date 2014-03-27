@@ -7,13 +7,17 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.util.List;
 
+import com.sohu.ad.algo.admm.tools.MyPair;
+import com.sohu.ad.algo.input.InstancesWritable;
+import com.sohu.ad.algo.input.SingleInstanceWritable;
 import com.sohu.ad.algo.math.*;
 
 
 public class AdmmMapperContext implements Writable {
 
-    //private static final double LAMBDA_VALUE = 1e-6;
+    private static final double LAMBDA_VALUE = 1e-6;
 
    // @JsonProperty("a")
     //private double[][] a;
@@ -77,24 +81,35 @@ public class AdmmMapperContext implements Writable {
         sNorm = -1;
     }
     */
+    
     public AdmmMapperContext(InstancesWritable instances) {
-    	dataset = new Dataset(instances.getData().size());
+    	List<SingleInstanceWritable> file_instances =instances.getFile_instances();
+    	dataset = new Dataset(file_instances.size());
     	int i = 0;
-    	for(SingleInstanceWritable instance : instances) {
+    	for(SingleInstanceWritable instance : file_instances){
     		dataset.getData().add(new Sample());
     		dataset.getData().get(i).setLabel(instance.getLabel());
-    		for(int idx : instance.getBinaryFeaturesIndex()) {
+    		for(int idx : instance.getId_fea_vec()) {
     			dataset.getData().get(i).setFeature(idx, 1.0);
     		}
-    		for(MyPair<Integer, Double> pair : instance.getContinuousFeatures()) {
-    			dataset.getData().get(i).setFeature(pair.first(), pair.second());	
-    		} 
+    		for(MyPair<Integer, Double> pair : instance.getFloat_fea_vec()) {
+    			dataset.getData().get(i).setFeature(pair.getFirst(), pair.getSecond());	
+    		}
+    		i+=1;
     	}
+    	
+    	 uInitial = new SparseVector();
+         xInitial = new SparseVector();
+         zInitial = new SparseVector();
+
+         rho = 1.0;
+         lambdaValue = LAMBDA_VALUE;
+         primalObjectiveValue = -1;
+         rNorm = -1;
+         sNorm = -1;
     	
     }
     
-    
-
     public AdmmMapperContext(InstancesWritable instances, double rho) {
         this(instances);
         this.rho = rho;
@@ -125,7 +140,7 @@ public class AdmmMapperContext implements Writable {
     }
     */
 
-    public AdmmMapperContext(Dataset dataset,
+    public AdmmMapperContext(InstancesWritable instances,
                              SparseVector uInitial,
                              SparseVector xInitial,
                              SparseVector zInitial,
@@ -134,7 +149,22 @@ public class AdmmMapperContext implements Writable {
                              double primalObjectiveValue,
                              double rNorm,
                              double sNorm) {
-    	this.dataset = dataset;
+    	
+    	List<SingleInstanceWritable> file_instances =instances.getFile_instances();
+    	dataset = new Dataset(file_instances.size());
+    	int i = 0;
+    	for(SingleInstanceWritable instance : file_instances){
+    		dataset.getData().add(new Sample());
+    		dataset.getData().get(i).setLabel(instance.getLabel());
+    		for(int idx : instance.getId_fea_vec()) {
+    			dataset.getData().get(i).setFeature(idx, 1.0);
+    		}
+    		for(MyPair<Integer, Double> pair : instance.getFloat_fea_vec()) {
+    			dataset.getData().get(i).setFeature(pair.getFirst(), pair.getSecond());	
+    		}
+    		i+=1;
+    	}
+    	
         this.uInitial = uInitial;
         this.xInitial = xInitial;
         this.zInitial = zInitial;

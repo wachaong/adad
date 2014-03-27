@@ -9,19 +9,20 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-import com.sohu.ad.algo.admm.optimizer.BFGS;
-import com.sohu.ad.algo.admm.optimizer.IOptimizer;
-import com.sohu.ad.algo.admm.optimizer.LogisticL2DifferentiableFunction;
-import com.sohu.ad.algo.admm.optimizer.OptimizerParameters;
+import com.sohu.ad.algo.input.InstancesWritable;
+import com.sohu.ad.algo.input.SingleInstanceWritable;
+import com.sohu.ad.algo.math.LBFGS;
+
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable, Text> {
+public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable, IntWritable, Text> {
 
     private static final IntWritable ZERO = new IntWritable(0);
     private static final Logger LOG = Logger.getLogger(AdmmIterationMapper.class.getName());
@@ -31,11 +32,8 @@ public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable,
     private int iteration;
     private FileSystem fs;
     private Map<String, String> splitToParameters;
-    private Set<Integer> columnsToExclude;
 
-    private OptimizerParameters optimizerParameters = new OptimizerParameters();
-    private BFGS<LogisticL2DifferentiableFunction> bfgs = new BFGS<LogisticL2DifferentiableFunction>(optimizerParameters);
-    private boolean addIntercept;
+    LBFGS lbfgsOptimizer = new LBFGS();
     private float regularizationFactor;
     private double rho;
     private String previousIntermediateOutputLocation;
@@ -47,8 +45,8 @@ public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable,
     	Configuration conf = context.getConfiguration();
         iteration = Integer.parseInt(conf.get("iteration.number"));
         String columnsToExcludeString = conf.get("columns.to.exclude");
-        columnsToExclude = AdmmIterationHelper.getColumnsToExclude(columnsToExcludeString);
-        addIntercept = conf.getBoolean("add.intercept", false);
+        //columnsToExclude = AdmmIterationHelper.getColumnsToExclude(columnsToExcludeString);
+        //addIntercept = conf.getBoolean("add.intercept", false);
         rho = conf.getFloat("rho", DEFAULT_RHO);
         regularizationFactor = conf.getFloat("regularization.factor", DEFAULT_REGULARIZATION_FACTOR);
         previousIntermediateOutputLocation = conf.get("previous.intermediate.output.location");
@@ -69,19 +67,19 @@ public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable,
     }
 
     @Override
-    public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
+    public void map(LongWritable key, InstancesWritable value, Context context) throws IOException, InterruptedException {
         FileSplit split = (FileSplit) context.getInputSplit();
         String splitId = key.get() + "@" + split.getPath();
         splitId = AdmmIterationHelper.removeIpFromHdfsFileName(splitId);
 
-        double[][] inputSplitData = AdmmIterationHelper.createMatrixFromDataString(value.toString(), columnsToExclude, addIntercept);
-
+        List<SingleInstanceWritable> file_instances =value.getFile_instances();
+        
         AdmmMapperContext mapperContext;
         if (iteration == 0) {
-            mapperContext = new AdmmMapperContext(inputSplitData, rho);
+            mapperContext = new AdmmMapperContext(value, rho);
         }
         else {
-            mapperContext = assembleMapperContextFromCache(inputSplitData, splitId);
+            mapperContext = assembleMapperContextFromCache(value, splitId);
         }
         AdmmReducerContext reducerContext = localMapperOptimization(mapperContext);
 
@@ -108,10 +106,10 @@ public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable,
                 regularizationFactor);
     }
 
-    private AdmmMapperContext assembleMapperContextFromCache(double[][] inputSplitData, String splitId) throws IOException {
-        if (splitToParameters.containsKey(splitId)) {
+    private AdmmMapperContext assembleMapperContextFromCache(InstancesWritable file_instances, String splitId) throws IOException {
+    	if (splitToParameters.containsKey(splitId)) {
             AdmmMapperContext preContext = AdmmIterationHelper.jsonToAdmmMapperContext(splitToParameters.get(splitId));
-            return new AdmmMapperContext(inputSplitData,
+            return new AdmmMapperContext(file_instances,
                     preContext.getUInitial(),
                     preContext.getXInitial(),
                     preContext.getZInitial(),
@@ -126,4 +124,5 @@ public class AdmmIterationMapper extends Mapper<LongWritable, Text, IntWritable,
             throw new IOException("Key not found.  Split ID: " + splitId + " Split Map: " + splitToParameters.toString());
         }
     }
+
 }

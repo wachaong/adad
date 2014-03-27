@@ -1,4 +1,4 @@
-package com.sohu.ad.algo.common;
+package com.sohu.ad.algo.input;
 
 import org.apache.hadoop.util.ToolRunner;
 /**
