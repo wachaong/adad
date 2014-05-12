@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 
 
 public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable, IntWritable, Text> {
-
+	
     private static final IntWritable ZERO = new IntWritable(0);
     private static final Logger LOG = Logger.getLogger(AdmmIterationMapper.class.getName());
     private static final float DEFAULT_REGULARIZATION_FACTOR = 0.000001f;

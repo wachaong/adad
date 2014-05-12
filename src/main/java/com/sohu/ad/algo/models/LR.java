@@ -35,22 +35,19 @@ public class LR implements Model  {
 	
 	/*
 	 * loss function for one sample(non-Javadoc)
+	 * NLL : negative log-likelihood
 	 * @see com.sohu.ad.algo.models.Model#loss(com.sohu.ad.algo.math.Sample)
 	 */
 	@Override
 	public double loss(Sample s) {
-		double tmp = 0.0;
-		for(int i : s.getFeatures().getData().keySet()) {
-			tmp += s.getFeature(i) * w.getValue(i);
-		}
-		tmp *= s.getLabel();
-		return Math.log(Util.sigmoid(tmp));
+		return Math.log(1 + Math.exp(-s.getLabel() * s.dot(w)));
 	}
+	
+	//public double loss(Single)
 
 
 	@Override
 	public void loadModel(String path) throws FileNotFoundException, IOException {
-
 			Scanner scanner = new Scanner(path);
 			w.getData().clear();
 			int key;
@@ -79,7 +76,7 @@ public class LR implements Model  {
 	 * @see com.sohu.ad.algo.models.Model#train(com.sohu.ad.algo.math.Dataset)
 	 * using LBFGS
 	 */
-	public void train(Dataset dataset) {
+	public void trainBatch(Dataset dataset) {
 		ObjectFunBatch f = new ObjectFunBatch(dataset);
 		GradientFunBatch df = new GradientFunBatch(dataset);
 		LBFGS lbfgs = new LBFGS();
@@ -89,8 +86,7 @@ public class LR implements Model  {
 
 	@Override
 	public double predict(SparseVector features) {
-		double tmp = features.dot(w);
-		return Util.sigmoid(tmp); 
+		return Util.sigmoid(features.dot(w));
 	}
 	
 	public class ObjectFunBatch implements ObjectFunction<SparseVector> {
@@ -100,7 +96,6 @@ public class LR implements Model  {
 			dataset = data;
 		}
 		
-
 		@Override
 		public double eval(SparseVector w) {
 			double ans = 0.0;
@@ -115,7 +110,7 @@ public class LR implements Model  {
 	}
 	 
 	public class GradientFunBatch implements GradientFunction<SparseVector> {
-		private Dataset dataset;
+		private Dataset dataset = null;
 		public GradientFunBatch(Dataset data) {
 			dataset = data;
 		}
@@ -124,19 +119,16 @@ public class LR implements Model  {
 		public SparseVector eval(SparseVector w) {
 			SparseVector dw = new SparseVector();
 			for(Sample sample : dataset.getData()) {
+				double s = Util.sigmoid(-sample.getLabel() * sample.dot(w));
 				for(int i : w.getData().keySet()) {
-					double tmp = 0.0;
-					tmp = 1 - Util.sigmoid(-sample.getLabel() * w.getValue(i) * sample.getFeature(i));
-					tmp *= -sample.getLabel() * sample.getFeature(i);
+					double tmp = (1 - s) * sample.getLabel() * sample.getFeature(i);
 					dw.setValue(i, tmp);
 				}
 			}
 			for(int i : w.getData().keySet()) {
 				dw.setValue(i, dw.getValue(i) + 2 * LR.this.lambda * w.getValue(i));
 			}
-			
 			return dw;
 		}
 	}
-
 }

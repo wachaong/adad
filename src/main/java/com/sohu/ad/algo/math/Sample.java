@@ -33,4 +33,8 @@ public class Sample {
 	public void setFeature(int i, double value) {
 		features.setValue(i, value);
 	}
+	
+	public double dot(SparseVector w) {
+		return w.dot(features);
+	}
 }

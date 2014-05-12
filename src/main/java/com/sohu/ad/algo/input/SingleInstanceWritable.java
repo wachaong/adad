@@ -1,5 +1,6 @@
 package com.sohu.ad.algo.input;
 
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;

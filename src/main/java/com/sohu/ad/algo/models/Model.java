@@ -8,7 +8,8 @@ public interface Model {
 	//public void initModel(String path);
 	public void loadModel(String path) throws FileNotFoundException, IOException;
 	public void saveModel(String path) throws FileNotFoundException;
-	public void train(Dataset dataset);
+	public void trainBatch(Dataset dataset);
+	//public void trainSGD(Dataset dataset);
 	public double loss(Sample sample);
 	public double predict(SparseVector features);
 }
