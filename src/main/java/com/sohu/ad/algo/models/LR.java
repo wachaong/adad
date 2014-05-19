@@ -1,6 +1,7 @@
 package com.sohu.ad.algo.models;
 
 import com.sohu.ad.algo.math.*;
+
 import java.util.*;
 import java.io.*;
 
@@ -44,7 +45,10 @@ public class LR implements Model  {
 	}
 	
 	//public double loss(Single)
-
+	public double loss(Dataset dataset) {
+		//return Math.log(1 + Math.exp(-s.getLabel() * s.dot(w)));
+		return 0;
+	}
 
 	@Override
 	public void loadModel(String path) throws FileNotFoundException, IOException {
@@ -82,6 +86,10 @@ public class LR implements Model  {
 		LBFGS lbfgs = new LBFGS();
 		lbfgs.minimize(f, df, w);
 	}
+	
+	public SparseVector getWUpdate() {
+        return w;
+    }
 	
 
 	@Override

@@ -77,44 +77,36 @@ public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable,
         
         AdmmMapperContext mapperContext;
         if (iteration == 0) {
-            mapperContext = new AdmmMapperContext(value, rho);
+            mapperContext = new AdmmMapperContext(rho);
         }
         else {
-            mapperContext = assembleMapperContextFromCache(value, splitId);
+            mapperContext = assembleMapperContextFromCache(splitId);
         }
-        AdmmReducerContext reducerContext = localMapperOptimization(mapperContext);
+        AdmmReducerContext reducerContext = localMapperOptimization(file_instances, mapperContext);
 
         LOG.info("Iteration " + iteration + "Mapper outputting splitId " + splitId);
         context.write(ZERO, new Text(splitId + "::" + AdmmIterationHelper.admmReducerContextToJson(reducerContext)));
     }
 
-    private AdmmReducerContext localMapperOptimization(AdmmMapperContext context) {
+    private AdmmReducerContext localMapperOptimization(List<SingleInstanceWritable> instances, AdmmMapperContext context) {
     	
-    	LR lr_map = new LR(context.getXInitial(), 1.0);
-    	lr_map.train(context.getDataset());
-        
-        double primalObjectiveValue = myFunction.evaluatePrimalObjective(optimizationContext.m_optimumX);
-        return new AdmmReducerContext(context.getUInitial(),
+    	LR lr_local = new LR(context.getXInitial(), 1.0);
+    	lr_local.trainBatch(instances);
+    	double primalObjectiveValue = lr_local.loss(instances);
+        return new AdmmReducerContext(
+        		context.getUInitial(),
                 context.getXInitial(),
-                optimizationContext.m_optimumX,
+                lr_local.getWUpdate(),
                 context.getZInitial(),
                 primalObjectiveValue,
                 context.getRho(),
                 regularizationFactor);
     }
 
-    private AdmmMapperContext assembleMapperContextFromCache(InstancesWritable file_instances, String splitId) throws IOException {
+    private AdmmMapperContext assembleMapperContextFromCache(String splitId) throws IOException {
     	if (splitToParameters.containsKey(splitId)) {
             AdmmMapperContext preContext = AdmmIterationHelper.jsonToAdmmMapperContext(splitToParameters.get(splitId));
-            return new AdmmMapperContext(file_instances,
-                    preContext.getUInitial(),
-                    preContext.getXInitial(),
-                    preContext.getZInitial(),
-                    preContext.getRho(),
-                    preContext.getLambdaValue(),
-                    preContext.getPrimalObjectiveValue(),
-                    preContext.getRNorm(),
-                    preContext.getSNorm());
+            return preContext;
         }
         else {
             LOG.log(Level.FINE, "Key not found. Split ID: " + splitId + " Split Map: " + splitToParameters.toString());

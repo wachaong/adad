@@ -4,6 +4,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.codehaus.jackson.annotate.JsonProperty;
 
+import com.sohu.ad.algo.math.SparseVector;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
@@ -11,16 +13,16 @@ import java.io.IOException;
 public class AdmmReducerContext implements Writable {
 
     @JsonProperty("uInitial")
-    private double[] uInitial;
+    private SparseVector uInitial;
 
     @JsonProperty("xInitial")
-    private double[] xInitial;
+    private SparseVector xInitial;
 
     @JsonProperty("xUpdated")
-    private double[] xUpdated;
+    private SparseVector xUpdated;
 
     @JsonProperty("zInitial")
-    private double[] zInitial; // zInitial is only needed here for calculating the dual norm, used in the rho update
+    private SparseVector zInitial; // zInitial is only needed here for calculating the dual norm, used in the rho update
 
     @JsonProperty("primalObjectiveValue")
     private double primalObjectiveValue;
@@ -31,7 +33,7 @@ public class AdmmReducerContext implements Writable {
     @JsonProperty("lambdaValue")
     private double lambdaValue;
 
-    public AdmmReducerContext(double[] uInitial, double[] xInitial, double[] xUpdated, double[] zInitial,
+    public AdmmReducerContext(SparseVector uInitial, SparseVector xInitial, SparseVector xUpdated, SparseVector zInitial,
                               double primalObjectiveValue, double rho, double lambdaValue) {
         this.uInitial = uInitial;
         this.xInitial = xInitial;
@@ -69,22 +71,22 @@ public class AdmmReducerContext implements Writable {
     }
 
     @JsonProperty("uInitial")
-    public double[] getUInitial() {
+    public SparseVector getUInitial() {
         return uInitial;
     }
 
     @JsonProperty("xInitial")
-    public double[] getXInitial() {
+    public SparseVector getXInitial() {
         return xInitial;
     }
 
     @JsonProperty("xUpdated")
-    public double[] getXUpdated() {
+    public SparseVector getXUpdated() {
         return xUpdated;
     }
 
     @JsonProperty("zInitial")
-    public double[] getZInitial() {
+    public SparseVector getZInitial() {
         return zInitial;
     }
 
