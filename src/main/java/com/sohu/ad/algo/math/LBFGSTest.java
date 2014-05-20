@@ -46,7 +46,7 @@ public class LBFGSTest {
 	}
 	
 	public class Df implements GradientFunction<SparseVector> {
-		public SparseVector eval(SparseVector x) {
+		public SparseVector gradient(SparseVector x) {
 			SparseVector dfx = new SparseVector();
 		//	dfx.setValue(0, 2 * x.getValue(0) - 10);
 		//	dfx.setValue(1, 2 * x.getValue(1) - 6 );

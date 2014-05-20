@@ -7,7 +7,7 @@ public class BFGS {
 	 public int minimize(ObjectFunction<SparseVector> f, GradientFunction<SparseVector> df,
 			 SparseVector x0, SymmetricMatrix H0) {
 		 double fx0 = f.eval(x0);
-		 SparseVector dfx0 = df.eval(x0);
+		 SparseVector dfx0 = df.gradient(x0);
 		 SparseVector xt = new SparseVector();
 		 SparseVector dfxt = new SparseVector();
 		 double fxt;
@@ -65,7 +65,7 @@ public class BFGS {
 	 public int minimize(ObjectFunction<Vector> f, GradientFunction<Vector> df,
 			 Vector x0, SymmetricMatrix H0) {
 		 double fx0 = f.eval(x0);
-		 Vector dfx0 = df.eval(x0);
+		 Vector dfx0 = df.gradient(x0);
 		 Vector xt = new Vector(x0.getData().length);
 		 Vector dfxt = new Vector(x0.getData().length);
 		 double fxt;

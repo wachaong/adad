@@ -18,13 +18,11 @@ public class LBFGS {
 						 SparseVector x0) {
 		
 		 double fx0 = f.eval(x0);
-		 SparseVector dfx0 = df.eval(x0);
+		 SparseVector dfx0 = df.gradient(x0);
 		 SparseVector xt = new SparseVector();
 		 SparseVector dfxt = new SparseVector();
 		 double fxt;
 		 
-		 //SparseVector s = new SparseVector();
-		 //SparseVector y = new SparseVector();
 		 SparseVector q = new SparseVector();
 		 
 		 SparseVector d = new SparseVector();

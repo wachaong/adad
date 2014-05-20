@@ -5,6 +5,8 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Reducer;
 
+import com.sohu.ad.algo.math.SparseVector;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -44,14 +46,14 @@ public class AdmmIterationReducer extends Reducer<IntWritable, Text, IntWritable
     }
 
     private void setOutputMapperValues(AdmmReducerContextGroup context) throws IOException {
-        double[] zUpdated = getZUpdated(context);
-        double[][] xUpdated = context.getXUpdated();
+    	SparseVector zUpdated = getZUpdated(context);
+    	SparseVector[] xUpdated = context.getXUpdated();
         String[] splitIds = context.getSplitIds();
 
         for (int mapperNumber = 0; mapperNumber < context.getNumberOfMappers(); mapperNumber++) {
-            double[] uUpdated = getUUpdated(context, mapperNumber, zUpdated);
+        	SparseVector uUpdated = getUUpdated(context, mapperNumber, zUpdated);
             AdmmMapperContext admmMapperContext =
-                    new AdmmMapperContext(null, null, uUpdated, xUpdated[mapperNumber], zUpdated,
+                    new AdmmMapperContext(uUpdated, xUpdated[mapperNumber], zUpdated,
                             context.getRho() * context.getRhoMultiplier(),
                             context.getLambda(), context.getPrimalObjectiveValue(),
                             context.getRNorm(), context.getSNorm());
@@ -61,37 +63,29 @@ public class AdmmIterationReducer extends Reducer<IntWritable, Text, IntWritable
         }
     }
 
-    private double[] getZUpdated(AdmmReducerContextGroup context) {
+    private SparseVector getZUpdated(AdmmReducerContextGroup context) {
         int numMappers = context.getNumberOfMappers();
-        int numFeatures = context.getNumberOfFeatures();
 
-        double[] xAverage = context.getXUpdatedAverage();
-        double[] uAverage = context.getUInitialAverage();
-        double[] zUpdated = new double[numFeatures];
+        SparseVector xAverage = context.getXUpdatedAverage();
+        SparseVector uAverage = context.getUInitialAverage();
+        SparseVector zUpdated = new SparseVector();
+
         double zMultiplier = (numMappers * context.getRho()) / (2 * context.getLambda() + numMappers * context.getRho());
-
-        for (int i = 0; i < numFeatures; i++) {
-            if (i == 0 && !regularizeIntercept) {
-                zUpdated[i] = xAverage[i] + uAverage[i];
-            }
-            else {
-                zUpdated[i] = zMultiplier * (xAverage[i] + uAverage[i]);
-            }
+        zUpdated = xAverage.add(uAverage).scale(zMultiplier);
+        if(!regularizeIntercept)
+        {
+        	zUpdated.setValue(0, xAverage.getValue(0) + uAverage.getValue(0));
         }
-
         return zUpdated;
     }
 
-    private double[] getUUpdated(AdmmReducerContextGroup context, int mapperNumber, double[] zUpdated) {
-        int numFeatures = context.getNumberOfFeatures();
-        double[] uInitial = context.getUInitial()[mapperNumber];
-        double[] xUpdated = context.getXUpdated()[mapperNumber];
-        double[] uUpdated = new double[numFeatures];
-        double rhoMultiplier = context.getRhoMultiplier();
-
-        for (int i = 0; i < numFeatures; i++) {
-            uUpdated[i] = (1 / rhoMultiplier) * (uInitial[i] + xUpdated[i] - zUpdated[i]);
-        }
+    private SparseVector getUUpdated(AdmmReducerContextGroup context, int mapperNumber, SparseVector zUpdated) {
+ 
+        SparseVector uInitial = context.getUInitial()[mapperNumber];
+        SparseVector xUpdated = context.getXUpdated()[mapperNumber];
+        SparseVector uUpdated = new SparseVector();
+        //?
+        uUpdated = uInitial.add(xUpdated).minus(zUpdated).scale(1.0/context.getRhoMultiplier());        
         return uUpdated;
     }
 

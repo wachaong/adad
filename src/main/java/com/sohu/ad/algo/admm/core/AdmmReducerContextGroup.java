@@ -2,6 +2,8 @@ package com.sohu.ad.algo.admm.core;
 
 import org.apache.hadoop.io.Text;
 
+import com.sohu.ad.algo.math.SparseVector;
+
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.logging.Logger;
@@ -14,10 +16,10 @@ public class AdmmReducerContextGroup {
     private static final double RHO_INCREMENT_MULTIPLIER = 1.5;
     private static final double RHO_DECREMENT_MULTIPLIER = 1.5;
     private static final double RHO_UPDATE_THRESHOLD = 5;
-    private final double[][] uInitial;
-    private final double[][] xInitial;
-    private final double[][] xUpdated;
-    private final double[] zInitial;
+    private final SparseVector[] uInitial;
+    private final SparseVector[] xInitial;
+    private final SparseVector[] xUpdated;
+    private final SparseVector zInitial;
     private final String[] splitIds;
     private final double rho;
     private final double lambdaValue;
@@ -29,18 +31,18 @@ public class AdmmReducerContextGroup {
     public AdmmReducerContextGroup(Iterator<Text> mapperResults, int numberOfMappers, Logger logger, int iteration)
             throws IOException {
         this.numberOfMappers = numberOfMappers;
+        uInitial = new SparseVector[numberOfMappers];
+        xInitial = new SparseVector[numberOfMappers];
+        xUpdated = new SparseVector[numberOfMappers];
+        splitIds = new String[numberOfMappers];
+        
         String[] result = getNextResult(mapperResults);
-        AdmmReducerContext context = AdmmIterationHelper.jsonToAdmmReducerContext(result[1]);
         String splitId = result[0];
-        logger.info("Iteration " + iteration + " Reducer Getting splitId " + splitId);
-
+        AdmmReducerContext context = AdmmIterationHelper.jsonToAdmmReducerContext(result[1]);
         rho = context.getRho();
         lambdaValue = context.getLambdaValue();
         zInitial = context.getZInitial();
-        uInitial = new double[numberOfMappers][];
-        xInitial = new double[numberOfMappers][];
-        xUpdated = new double[numberOfMappers][];
-        splitIds = new String[numberOfMappers];
+        logger.info("Iteration " + iteration + " Reducer Getting splitId " + splitId);
 
         int contextNumber = 0;
         double primalObjectiveValueLoop = 0;
@@ -81,45 +83,31 @@ public class AdmmReducerContextGroup {
         return numberOfMappers;
     }
 
-    private double[] getAverage(double[][] toAverage) {
-        double[] average = new double[toAverage[0].length];
-
-        for (double[] aToAverage : toAverage) {
-            for (int j = 0; j < aToAverage.length; j++) {
-                average[j] += aToAverage[j];
-            }
+    private SparseVector getAverage(SparseVector[] toAverage) {
+    	SparseVector average = new SparseVector();
+        for (SparseVector sv : toAverage) {
+        	average.add(sv);
         }
-        for (int j = 0; j < average.length; j++) {
-            average[j] = average[j] / toAverage.length;
-        }
-
-        return average;
+        return average.scale(1.0/toAverage.length);
     }
 
     private double calculateRNorm() {
         double result = 0.0;
-        double[] xUpdatedAverage = getXUpdatedAverage();
-        for (double[] thisXUpdated : xUpdated) {
-            for (int j = 0; j < xUpdatedAverage.length; j++) {
-                result += Math.pow(thisXUpdated[j] - xUpdatedAverage[j], 2);
-            }
+        SparseVector xUpdatedAverage = getXUpdatedAverage();
+        for (SparseVector thisXUpdated : xUpdated) {
+        	result += thisXUpdated.minus(xUpdatedAverage).norm_2();
         }
         result = Math.pow(result, SQUARE_ROOT_POWER);
-
         return result;
     }
 
     private double calculateSNorm() {
-        double[] xPreviousAverage = getXInitialAverage();
-        double[] xUpdatedAverage = getXUpdatedAverage();
-        double result = 0.0;
-        for (int i = 0; i < xPreviousAverage.length; i++) {
-            result += Math.pow(xPreviousAverage[i] - xUpdatedAverage[i], 2);
-        }
+    	SparseVector xPreviousAverage = getXInitialAverage();
+    	SparseVector xUpdatedAverage = getXUpdatedAverage();
+        double result = xUpdatedAverage.minus(xPreviousAverage).norm_2();
         result *= Math.pow(rho, 2);
         result *= numberOfMappers;
         result = Math.pow(result, SQUARE_ROOT_POWER);
-
         return result;
     }
 
@@ -142,10 +130,6 @@ public class AdmmReducerContextGroup {
         return numberOfMappers;
     }
 
-    public int getNumberOfFeatures() {
-        return zInitial.length;
-    }
-
     public double getLambda() {
         return lambdaValue;
     }
@@ -154,23 +138,23 @@ public class AdmmReducerContextGroup {
         return rho;
     }
 
-    public double[] getUInitialAverage() {
+    public SparseVector getUInitialAverage() {
         return getAverage(uInitial);
     }
 
-    public double[] getXInitialAverage() {
+    public SparseVector getXInitialAverage() {
         return getAverage(xInitial);
     }
 
-    public double[] getXUpdatedAverage() {
+    public SparseVector getXUpdatedAverage() {
         return getAverage(xUpdated);
     }
 
-    public double[][] getXUpdated() {
+    public SparseVector[] getXUpdated() {
         return xUpdated;
     }
 
-    public double[][] getUInitial() {
+    public SparseVector[] getUInitial() {
         return uInitial;
     }
 

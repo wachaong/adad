@@ -47,7 +47,7 @@ public class BFGSTest {
 	}
 	
 	public class Df implements GradientFunction<Vector> {
-		public Vector eval(Vector x) {
+		public Vector gradient(Vector x) {
 			Vector dfx = new Vector(x.getData().length);
 		//	dfx.setValue(0, 2 * x.getValue(0) - 10);
 		//	dfx.setValue(1, 2 * x.getValue(1) - 6 );

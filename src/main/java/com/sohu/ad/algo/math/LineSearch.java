@@ -55,7 +55,7 @@ public class LineSearch {
 			++iterNum;
 			xt.assignTmp(BLAS.add(x0, d.scale(alpha)));
 			fxt = f.eval(xt);
-			dfxt.assignTmp(df.eval(xt));
+			dfxt.assignTmp(df.gradient(xt));
 			ddt = BLAS.dot(d, dfxt);
 			
 			//check Armijo condition
@@ -96,7 +96,7 @@ public class LineSearch {
 		while(iterNum < MAX_ITER_NUM) {
 			xt.assignTmp(x0.add(d.scale(alpha)));
 			fxt = f.eval(xt);
-			dfxt.assignTmp(df.eval(xt));
+			dfxt.assignTmp(df.gradient(xt));
 			ddt = d.dot(dfxt);
 			
 			//check Armijo condition

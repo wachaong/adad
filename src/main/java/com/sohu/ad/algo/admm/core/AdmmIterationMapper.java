@@ -72,8 +72,6 @@ public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable,
         FileSplit split = (FileSplit) context.getInputSplit();
         String splitId = key.get() + "@" + split.getPath();
         splitId = AdmmIterationHelper.removeIpFromHdfsFileName(splitId);
-
-        List<SingleInstanceWritable> file_instances =value.getFile_instances();
         
         AdmmMapperContext mapperContext;
         if (iteration == 0) {
@@ -82,25 +80,21 @@ public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable,
         else {
             mapperContext = assembleMapperContextFromCache(splitId);
         }
-        AdmmReducerContext reducerContext = localMapperOptimization(file_instances, mapperContext);
 
+        LR lr_local = new LR(mapperContext.getXInitial(), 1.0);
+    	lr_local.trainBatch(value);
+    	double primalObjectiveValue = lr_local.loss(value);
+    	AdmmReducerContext reducerContext = new AdmmReducerContext(
+    			mapperContext.getUInitial(),
+    			mapperContext.getXInitial(),
+                lr_local.getWeight(),
+                mapperContext.getZInitial(),
+                primalObjectiveValue,
+                mapperContext.getRho(),
+                regularizationFactor);
+        
         LOG.info("Iteration " + iteration + "Mapper outputting splitId " + splitId);
         context.write(ZERO, new Text(splitId + "::" + AdmmIterationHelper.admmReducerContextToJson(reducerContext)));
-    }
-
-    private AdmmReducerContext localMapperOptimization(List<SingleInstanceWritable> instances, AdmmMapperContext context) {
-    	
-    	LR lr_local = new LR(context.getXInitial(), 1.0);
-    	lr_local.trainBatch(instances);
-    	double primalObjectiveValue = lr_local.loss(instances);
-        return new AdmmReducerContext(
-        		context.getUInitial(),
-                context.getXInitial(),
-                lr_local.getWUpdate(),
-                context.getZInitial(),
-                primalObjectiveValue,
-                context.getRho(),
-                regularizationFactor);
     }
 
     private AdmmMapperContext assembleMapperContextFromCache(String splitId) throws IOException {

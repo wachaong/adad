@@ -29,7 +29,7 @@ public class LineSearchTest {
 		Vector dfxt = new Vector(2);
 		x0.setValue(0, 0.0);
 		x0.setValue(1, 0.0);
-		Vector dfx0 = df.eval(x0);
+		Vector dfx0 = df.gradient(x0);
 		double fx0 = f.eval(x0);
 		System.out.println(x0);
 		int i = 0;
@@ -55,7 +55,7 @@ public class LineSearchTest {
 	}
 	
 	public class Df implements GradientFunction<Vector> {
-		public Vector eval(Vector x) {
+		public Vector gradient(Vector x) {
 			Vector dfx = new Vector(x.getData().length);
 			dfx.setValue(0, 2 * x.getValue(0) - 10);
 			dfx.setValue(1, 2 * x.getValue(1) - 6 );

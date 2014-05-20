@@ -1,5 +1,8 @@
 package com.sohu.ad.algo.models;
 
+import com.sohu.ad.algo.admm.tools.MyPair;
+import com.sohu.ad.algo.input.InstancesWritable;
+import com.sohu.ad.algo.input.SingleInstanceWritable;
 import com.sohu.ad.algo.math.*;
 
 import java.util.*;
@@ -39,15 +42,26 @@ public class LR implements Model  {
 	 * NLL : negative log-likelihood
 	 * @see com.sohu.ad.algo.models.Model#loss(com.sohu.ad.algo.math.Sample)
 	 */
-	@Override
-	public double loss(Sample s) {
-		return Math.log(1 + Math.exp(-s.getLabel() * s.dot(w)));
+	public double loss(SingleInstanceWritable s) {
+		double weight_sum = 0.0;
+		for(int idx : s.getId_fea_vec()) {
+			weight_sum += w.getValue(idx);
+		}
+		for(MyPair<Integer, Double> pair : s.getFloat_fea_vec()) {
+			double tmp = w.getValue(pair.getFirst()) * pair.getSecond();
+			weight_sum += tmp;
+		}
+		return Math.log(1 + Math.exp(-s.getLabel() * weight_sum));
 	}
 	
-	//public double loss(Single)
-	public double loss(Dataset dataset) {
-		//return Math.log(1 + Math.exp(-s.getLabel() * s.dot(w)));
-		return 0;
+	public double loss(InstancesWritable dataset) {
+		int m = 0;
+		double loss_sum = 0.0;
+		for(SingleInstanceWritable instance : dataset.getFile_instances()){
+			loss_sum += loss(instance);
+			m++;
+		}
+		return loss_sum/m;
 	}
 
 	@Override
@@ -80,14 +94,14 @@ public class LR implements Model  {
 	 * @see com.sohu.ad.algo.models.Model#train(com.sohu.ad.algo.math.Dataset)
 	 * using LBFGS
 	 */
-	public void trainBatch(Dataset dataset) {
+	public void trainBatch(InstancesWritable dataset) {
 		ObjectFunBatch f = new ObjectFunBatch(dataset);
 		GradientFunBatch df = new GradientFunBatch(dataset);
 		LBFGS lbfgs = new LBFGS();
 		lbfgs.minimize(f, df, w);
 	}
 	
-	public SparseVector getWUpdate() {
+	public SparseVector getWeight() {
         return w;
     }
 	
@@ -98,17 +112,17 @@ public class LR implements Model  {
 	}
 	
 	public class ObjectFunBatch implements ObjectFunction<SparseVector> {
-		private Dataset dataset = null;
+		private InstancesWritable dataset = null;
 		
-		public ObjectFunBatch(Dataset data) {
+		public ObjectFunBatch(InstancesWritable data) {
 			dataset = data;
 		}
 		
 		@Override
 		public double eval(SparseVector w) {
 			double ans = 0.0;
-			for(Sample sample : dataset.getData()) {
-				ans += LR.this.loss(sample);
+			for(SingleInstanceWritable instance : dataset.getFile_instances()){
+				ans += loss(instance);
 			}
 			//regular
 			ans += LR.this.lambda * Math.pow(w.norm_2(), 2);
@@ -118,19 +132,32 @@ public class LR implements Model  {
 	}
 	 
 	public class GradientFunBatch implements GradientFunction<SparseVector> {
-		private Dataset dataset = null;
-		public GradientFunBatch(Dataset data) {
+		private InstancesWritable dataset = null;
+		public GradientFunBatch(InstancesWritable data) {
 			dataset = data;
 		}
 		
 		@Override
-		public SparseVector eval(SparseVector w) {
+		public SparseVector gradient(SparseVector w) {
 			SparseVector dw = new SparseVector();
-			for(Sample sample : dataset.getData()) {
-				double s = Util.sigmoid(-sample.getLabel() * sample.dot(w));
-				for(int i : w.getData().keySet()) {
-					double tmp = (1 - s) * sample.getLabel() * sample.getFeature(i);
-					dw.setValue(i, tmp);
+			for(SingleInstanceWritable instance : dataset.getFile_instances()){
+				double weight_sum = 0.0;
+				for(int idx : instance.getId_fea_vec()) {
+					weight_sum += w.getValue(idx);
+				}
+				for(MyPair<Integer, Double> pair : instance.getFloat_fea_vec()) {
+					double tmp = w.getValue(pair.getFirst()) * pair.getSecond();
+					weight_sum += tmp;
+				}
+				double pctr = Util.sigmoid(-instance.getLabel() * weight_sum);
+				
+				for(int i : instance.getId_fea_vec()) {
+					double tmp = (1 - pctr) * instance.getLabel();
+					dw.setValue(i, dw.getValue(i) + tmp);
+				}
+				for(MyPair<Integer, Double> pair : instance.getFloat_fea_vec()) {
+					double tmp = (1 - pctr) * instance.getLabel() * pair.getSecond();
+					dw.setValue(pair.getFirst(), dw.getValue(pair.getFirst()) + tmp);
 				}
 			}
 			for(int i : w.getData().keySet()) {
