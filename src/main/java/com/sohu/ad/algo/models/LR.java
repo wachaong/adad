@@ -8,33 +8,27 @@ import com.sohu.ad.algo.math.*;
 import java.util.*;
 import java.io.*;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 
 public class LR implements Model  {
 	
 	private SparseVector w = new SparseVector();  //parameters
 	private double lambda = 0.0; //regular coefficient
+	private double rho;
+    private SparseVector u = null;
+    private SparseVector z = null;
 	
 	//Constructors
 	public LR() {
 	}
 	
-	public LR(SparseVector _w, double _lambda) {
+	public LR(SparseVector _w, SparseVector _u, SparseVector _z, double _rho, double _lambda) {
+		rho = _rho;
 		lambda = _lambda;
 		w.assign(_w);
-	}
-	
-	public LR(String w_str, double _lambda) {
-		lambda = _lambda;
-		Scanner scanner = new Scanner(w_str);
-		int key;
-		double value;
-		while(scanner.hasNext()) {
-			key = scanner.nextInt();
-			scanner.nextByte();
-			value = scanner.nextDouble();
-			w.setValue(key, value);
-		}
-		scanner.close();
+		u.assign(_u);
+		z.assign(_z);
 	}
 	
 	/*
@@ -61,7 +55,9 @@ public class LR implements Model  {
 			loss_sum += loss(instance);
 			m++;
 		}
-		return loss_sum/m;
+		double dual_penalty_tmp =  w.minus(u).add(z).norm_2();
+		double loss = loss_sum/m + dual_penalty_tmp*rho/2.0;
+		return loss;
 	}
 
 	@Override
@@ -94,11 +90,12 @@ public class LR implements Model  {
 	 * @see com.sohu.ad.algo.models.Model#train(com.sohu.ad.algo.math.Dataset)
 	 * using LBFGS
 	 */
-	public void trainBatch(InstancesWritable dataset) {
+	public double trainBatch(InstancesWritable dataset) {
 		ObjectFunBatch f = new ObjectFunBatch(dataset);
 		GradientFunBatch df = new GradientFunBatch(dataset);
 		LBFGS lbfgs = new LBFGS();
 		lbfgs.minimize(f, df, w);
+		return f.eval(w);
 	}
 	
 	public SparseVector getWeight() {

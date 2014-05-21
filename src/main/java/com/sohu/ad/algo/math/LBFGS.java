@@ -22,9 +22,7 @@ public class LBFGS {
 		 SparseVector xt = new SparseVector();
 		 SparseVector dfxt = new SparseVector();
 		 double fxt;
-		 
 		 SparseVector q = new SparseVector();
-		 
 		 SparseVector d = new SparseVector();
 		 LineSearch lineSearch = new LineSearch();
 		 

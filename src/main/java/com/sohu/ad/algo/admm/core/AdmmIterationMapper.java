@@ -73,24 +73,22 @@ public class AdmmIterationMapper extends Mapper<LongWritable, InstancesWritable,
         String splitId = key.get() + "@" + split.getPath();
         splitId = AdmmIterationHelper.removeIpFromHdfsFileName(splitId);
         
-        AdmmMapperContext mapperContext;
+        AdmmMapperContext mc;
         if (iteration == 0) {
-            mapperContext = new AdmmMapperContext(rho);
+            mc = new AdmmMapperContext(rho);
         }
         else {
-            mapperContext = assembleMapperContextFromCache(splitId);
+            mc = assembleMapperContextFromCache(splitId);
         }
-
-        LR lr_local = new LR(mapperContext.getXInitial(), 1.0);
-    	lr_local.trainBatch(value);
-    	double primalObjectiveValue = lr_local.loss(value);
+        LR lr_local = new LR(mc.getXInitial(),mc.getUInitial(),mc.getZInitial(),mc.getRho(),1.0);
+    	double local_loss = lr_local.trainBatch(value);
     	AdmmReducerContext reducerContext = new AdmmReducerContext(
-    			mapperContext.getUInitial(),
-    			mapperContext.getXInitial(),
+    			mc.getUInitial(),
+    			mc.getXInitial(),
                 lr_local.getWeight(),
-                mapperContext.getZInitial(),
-                primalObjectiveValue,
-                mapperContext.getRho(),
+                mc.getZInitial(),
+                local_loss,
+                mc.getRho(),
                 regularizationFactor);
         
         LOG.info("Iteration " + iteration + "Mapper outputting splitId " + splitId);
